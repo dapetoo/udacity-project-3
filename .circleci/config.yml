@@ -27,8 +27,34 @@ jobs:
             npm install
             npm run build
 
+  test_frontend:
+    docker:
+      - image: cimg/node:18.3.0
+    steps:
+      - checkout
+      - run:
+          name: Frontend Unit Test
+          command: |
+            cd frontend
+            npm install
+            npm run test
+
+  test_backend:
+    docker:
+      - image: cimg/node:18.3.0
+    steps:
+      - checkout
+      - run:
+          name: Backend Unit Test
+          command: |
+            cd backend
+            npm install
+            npm run test
+
 workflows:
   default:
     jobs:
       - build_frontend
       - build_backend
+      - test_frontend
+      - test_backend
