@@ -4,7 +4,7 @@ jobs:
   
   build_frontend:
     docker:
-      - image: cimg/node:16.15.0
+      - image: cimg/node:16.9.1
     steps:
       - checkout
       - restore_cache:
@@ -15,7 +15,9 @@ jobs:
             cd frontend
             npm install
             npm run build
-
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   build_backend:
     docker:
@@ -88,6 +90,7 @@ jobs:
             cd backend
             npm install
             npm audit --audit-level=critical
+      
 
 workflows:
   default:
