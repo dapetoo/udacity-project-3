@@ -110,6 +110,7 @@ jobs:
           name: Frontend Code Scan
           command: |
             cd frontend
+            npm install
             npm audit fix --audit-level=critical
       - slack/notify:
           event: fail
