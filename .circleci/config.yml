@@ -7,6 +7,8 @@ jobs:
       - image: cimg/node:16.15.0
     steps:
       - checkout
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Build front-end
           command: |
@@ -17,11 +19,13 @@ jobs:
 
   build_backend:
     docker:
-      - image: cimg/node:16.15.0
+      - image: cimg/node:14.19.2
     steps:
       - checkout
+      - restore_cache:
+          keys: [backend-build]
       - run:
-          name: Back-end build
+          name: Backend build
           command: |
             cd backend
             npm install
@@ -41,7 +45,7 @@ jobs:
 
   test_backend:
     docker:
-      - image: cimg/node:16.15.0
+      - image: cimg/node:14.19.2
     steps:
       - checkout
       - run:
