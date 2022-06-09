@@ -4,19 +4,6 @@ orbs:
   slack: circleci/slack@4.1
 
 jobs:
-  
-  deploy:
-    docker:
-      - image: 'cimg/base:stable'
-    steps:
-      - run: echo "deploy my app"
-      - slack/notify:
-          event: fail
-          channel: notification_channel
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: success_tagged_deploy_1
 
   build_frontend:
     docker:
@@ -40,7 +27,8 @@ jobs:
           template: basic_fail_1
       - slack/notify:
           event: pass
-          template: success_tagged_deploy_1
+          channel: notification_channel
+          template: basic_success_1
 
   build_backend:
     docker:
@@ -58,6 +46,14 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          channel: notification_channel
+          template: basic_success_1
 
   test_frontend:
     docker:
@@ -72,6 +68,14 @@ jobs:
             cd frontend
             npm install
             npm run test
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          channel: notification_channel
+          template: basic_success_1
 
   test_backend:
     docker:
@@ -86,6 +90,14 @@ jobs:
             cd backend
             npm install
             npm run test
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          channel: notification_channel
+          template: basic_success_1
 
   scan-frontend:
     docker:
@@ -99,6 +111,14 @@ jobs:
           command: |
             cd frontend
             npm audit fix --audit-level=critical
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          channel: notification_channel
+          template: basic_success_1
 
   scan_backend:
     docker:
@@ -113,6 +133,14 @@ jobs:
             cd backend
             npm install
             npm audit fix --audit-level=critical
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          channel: notification_channel
+          template: basic_success_1
 
 workflows:
   default:
