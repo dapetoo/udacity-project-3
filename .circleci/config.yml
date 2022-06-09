@@ -5,6 +5,19 @@ orbs:
 
 jobs:
 
+  deploy2:
+    executor:
+      name: node/default
+    steps:
+      - checkout
+      - node/install-packages
+      - run:
+          command: npm run deploy
+      - slack/notify:
+          channel: ABCXYZ
+          event: fail
+          template: basic_fail_1
+  
   deploy:
     docker:
       - image: 'cimg/base:stable'
@@ -133,6 +146,7 @@ workflows:
   default:
     jobs:
       - deploy
+      - deploy2
       - notify:
           context: slack-secrets
       - build_frontend
