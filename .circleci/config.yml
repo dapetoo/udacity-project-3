@@ -1,23 +1,9 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@4.1
   slack: circleci/slack@4.1
 
 jobs:
-
-  deploy2:
-    executor:
-      name: node/default
-    steps:
-      - checkout
-      - node/install-packages
-      - run:
-          command: npm run deploy
-      - slack/notify:
-          channel: ABCXYZ
-          event: fail
-          template: basic_fail_1
   
   deploy:
     docker:
@@ -26,33 +12,11 @@ jobs:
       - run: echo "deploy my app"
       - slack/notify:
           event: fail
-          mentions: '@EngineeringTeam'
+          channel: notification_channel
           template: basic_fail_1
       - slack/notify:
           event: pass
           template: success_tagged_deploy_1
-
-  notify:
-    docker:
-      - image: "cimg/base:stable"
-    steps:
-      - slack/notify:
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "plain_text",
-                      "text": "*This is a text notification*",
-                      "emoji": true
-                    }
-                  ]
-                }
-              ]
-            }
-          event: always
 
   build_frontend:
     docker:
@@ -70,6 +34,13 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
+      - slack/notify:
+          event: fail
+          channel: notification_channel
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
 
   build_backend:
     docker:
