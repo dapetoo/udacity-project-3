@@ -4,7 +4,7 @@ jobs:
   
   build_frontend:
     docker:
-      - image: cimg/node:18.3.0
+      - image: cimg/node:16.15.0
     steps:
       - checkout
       - run:
@@ -17,7 +17,7 @@ jobs:
 
   build_backend:
     docker:
-      - image: cimg/node:18.3.0
+      - image: cimg/node:16.15.0
     steps:
       - checkout
       - run:
