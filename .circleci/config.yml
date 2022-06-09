@@ -37,6 +37,8 @@ jobs:
       - image: cimg/node:16.15.0
     steps:
       - checkout
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Frontend Unit Test
           command: |
@@ -50,6 +52,8 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
+      - restore_cache:
+          keys: [backend-build]
       - run:
           name: Backend Unit Test
           command: |
@@ -57,10 +61,44 @@ jobs:
             npm install
             npm run test
 
+  scan-frontend:
+    docker:
+      - image: cimg/node:16.15.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Frontend Code Scan
+          command: |
+            cd frontend
+            npm install
+            npm audit --audit-level=critical
+
+  scan-backend:
+    docker:
+      - image: cimg/node:16.15.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Backend Code Scan
+          command: |
+            cd backend
+            npm install
+            npm audit --audit-level=critical
+
 workflows:
   default:
     jobs:
       - build_frontend
       - build_backend
-      - test_frontend
-      - test_backend
+      - test_frontend: 
+          requires: [build_frontend]  
+      - test_backend:
+          requires: [build_backend]
+      - scan-frontend:
+          requires: [build_frontend]
+      - scan_backend: 
+          requires: [build_backend]  
