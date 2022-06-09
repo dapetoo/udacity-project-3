@@ -5,6 +5,19 @@ orbs:
 
 jobs:
 
+  deploy:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - run: echo "deploy my app"
+      - slack/notify:
+          event: fail
+          mentions: '@EngineeringTeam'
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
+
   notify:
     docker:
       - image: "cimg/base:stable"
@@ -119,6 +132,7 @@ jobs:
 workflows:
   default:
     jobs:
+      - deploy
       - notify:
           context: slack-secrets
       - build_frontend
