@@ -22,7 +22,7 @@ jobs:
   build_backend:
     docker:
       #- image: cimg/node:13.8.0
-      - image: circleci/node:13.8.0
+      - image: cimg/node:16.9.1
     steps:
       - checkout
       - restore_cache:
