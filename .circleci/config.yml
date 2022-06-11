@@ -150,7 +150,7 @@ jobs:
       - checkout
       - run: 
           name: Install tar, gzip, git
-          yum -y install tar gzip jq git
+          yum -y install tar gzip git
       - run:
           name: Ensure back-end infrastructure exists
           command: |
