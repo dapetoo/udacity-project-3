@@ -156,10 +156,10 @@ jobs:
           command: |
             # Use the workflow id to mark your CloudFormation stacks so that you can reference them later on (ex: rollback). 
             aws cloudformation deploy \
-                --template-file .circleci/files/backend.yml \
-                --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-                --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
-                --tags project=udapeople
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople-${CIRCLE_WORKFLOW_ID:0:5} \
+              --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:5} \
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5} 
   
 workflows:
   default:
