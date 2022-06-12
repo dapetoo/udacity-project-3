@@ -180,6 +180,10 @@ jobs:
             --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" \
             --output text >> ~/project/.circleci/ansible/inventory.txt
 
+      - run:
+          name: View the content of the inventory file
+          command: cat .circleci/ansible/inventory.txt
+
       
   
 workflows:
