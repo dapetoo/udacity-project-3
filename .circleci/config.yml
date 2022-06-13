@@ -392,6 +392,30 @@ jobs:
       - revert-migrations
       - destroy-environment
 
+  smoke-test:
+    docker: 
+      -image: alpine:latest
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run: 
+          name: Install image dependencies
+          command: |
+            apk add --update curl nodejs npm
+
+      - run:
+          name: Backend smoke test 
+          command: |
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+                return 0
+            else
+                return 1
+            fi
+
 workflows:
   default:
     jobs:
@@ -418,3 +442,4 @@ workflows:
           requires: [run_migrations]
       - deploy_backend:
           requires: [run_migrations]
+      - smoke-test
