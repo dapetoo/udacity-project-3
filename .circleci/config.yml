@@ -250,7 +250,7 @@ jobs:
 
   run-migrations:
     docker:
-      - image: node:lts-alpine3.16
+      - image: cimg/node:16.9.1
     steps:
       - checkout
       - attach_workspace:
