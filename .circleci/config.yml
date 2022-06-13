@@ -207,7 +207,7 @@ jobs:
             - project/.circleci/ansible/inventory.txt
 
       - destroy-environment
-      
+
   configure-infrastructure:
     docker:
       - image: python:alpine3.16
@@ -247,6 +247,26 @@ jobs:
 
       #Rollback on Failure
       - destroy-environment
+
+  run-migrations:
+    docker:
+      - image: node:lts-alpine3.16
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+          
+      - restore_cache:
+          keys: [backend-build]
+
+      - run:
+          name: Run Database Migrations
+          command: |
+            cd backend
+            npm install
+            npm run migrations > migrations_dump.txt
+
+
 workflows:
   default:
     jobs:
@@ -262,3 +282,4 @@ workflows:
           requires: [build_backend]
       - deploy-infrastructure
       - configure-infrastructure
+      - run-migrations
