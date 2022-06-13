@@ -394,7 +394,7 @@ jobs:
 
   smoke-test:
     docker: 
-      -image: alpine:latest
+      - image: alpine:latest
     steps:
       - checkout
       - attach_workspace:
