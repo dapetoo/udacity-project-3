@@ -301,6 +301,22 @@ jobs:
             cd frontend
             npm install
 
+      - run:
+          name: Get backend url
+          command: |
+            
+            # BACKEND_IP=$(aws ec2 describe-instances \
+            #   --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            #   --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" ) 
+            BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID}" \
+              --request GET https://api.memstash.io/values/backendip)
+            export API_URL="http://${BACKEND_IP}:3030"
+            
+            echo ENVIRONMENT=production > "frontend/.env"
+            echo NODE_ENV=production >> "frontend/.env"
+            echo API_URL=$API_URL >> "frontend/.env"
+           
+            echo "${API_URL}"
 
 workflows:
   default:
