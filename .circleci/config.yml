@@ -20,6 +20,29 @@ commands:
             aws cloudformation delete-stack --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:5}
             aws cloudformation delete-stack --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:5}
             exit 0
+            
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    steps:
+      - restore_cache:
+          key: backend-build
+          
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            # store result in SUCCESS if there was a successful migration associated with the workflow id
+            SUCCESS=`curl -H "token: e4b5e00a-f50e-4015-bea4-3150bfce14f7" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}`
+            echo $SUCCESS
+            if (( $SUCCESS == 1 ));
+            then
+              cd backend
+              npm install
+              npm run migrations:revert #revert the successful migration
+              echo "Migration reverted"
+            else
+              echo "Migration revert was unsuccessful" 
+            fi
 
 jobs:
 
@@ -322,6 +345,52 @@ jobs:
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
+
+      - revert-migrations
+      - destroy-environment 
+
+  deploy_backend:
+    docker:
+      - image: python:alpine3.16
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ['98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06']
+      - attach_workspace:
+          at: ~/
+      
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible openssh-client tar gzip curl nodejs npm
+            # pip install awscli
+      - run:
+          name: Deploy backend
+          no_output_timeout: 30m
+          command: |
+            echo ENVIRONMENT=production >> "backend/.env"
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+            cat backend/.env
+
+            tar -C backend -czvf artifact.tar.gz .
+            ls -la
+
+            cd .circleci/ansible
+            cat inventory.txt
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i inventory.txt deploy-backend.yml
+
+      # Here's where you will add some code to rollback on failure
+      - revert-migrations
+      - destroy-environment
 
 workflows:
   default:
