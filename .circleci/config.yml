@@ -21,7 +21,7 @@ commands:
             aws cloudformation delete-stack --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:5}
             exit 0
 
-  revert-migrations:
+  revert-migrations2:
     description: Revert the last migration if successfully run in the current workflow.
     steps:
       - restore_cache:
@@ -43,6 +43,26 @@ commands:
             else
               echo "Migration revert was unsuccessful" 
             fi
+
+  revert-migrations:
+    description: Revert the last migration
+    parameters:
+        workflow_id:
+            type: string      
+    steps:
+        - run:
+            name: Revert migrations
+            when: on_fail
+            command: |
+                # Your kvdb.io GET URL code goes here
+                SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_<< parameters.workflow_id >>)
+                # Logic for reverting the database state
+                if (( $SUCCESS == 1 ));
+                then
+                    cd ~/project/backend
+                    npm install
+                    npm run migration:revert
+                fi  
 
 jobs:
   build_frontend:
