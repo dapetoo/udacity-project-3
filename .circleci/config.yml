@@ -47,7 +47,7 @@ commands:
   revert-migrations:
     description: Revert the last migration
     parameters:
-        workflow_id:
+        parameters.workflow_id:
             type: string      
     steps:
         - restore_cache: 
