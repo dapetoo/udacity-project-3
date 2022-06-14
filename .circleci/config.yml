@@ -20,13 +20,13 @@ commands:
             aws cloudformation delete-stack --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:5}
             aws cloudformation delete-stack --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:5}
             exit 0
-            
+
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
     steps:
       - restore_cache:
           key: backend-build
-          
+
       - run:
           name: Revert migrations
           when: on_fail
@@ -45,7 +45,6 @@ commands:
             fi
 
 jobs:
-
   build_frontend:
     docker:
       - image: cimg/node:16.9.1
@@ -189,7 +188,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run: 
+      - run:
           name: Install tar, gzip, git
           command: yum -y install tar gzip git
       - run:
@@ -200,7 +199,7 @@ jobs:
               --template-file .circleci/files/backend.yml \
               --tags project=udapeople-${CIRCLE_WORKFLOW_ID:0:5} \
               --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5} 
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5}
 
       - run:
           name: Ensure front-end infrastructure exists
@@ -210,11 +209,11 @@ jobs:
               --template-file .circleci/files/frontend.yml \
               --tags project=udapeople-${CIRCLE_WORKFLOW_ID:0:5} \
               --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5} 
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5}
 
-      - run: 
+      - run:
           name: Add the EC2 instance IP to the Ansible inventory
-          command: | 
+          command: |
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" \
@@ -237,10 +236,10 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ['98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06']
+          fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
       - attach_workspace:
-          at: ~/ 
-      
+          at: ~/
+
       - run:
           name: Install dependencies
           command: |
@@ -278,7 +277,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/
-          
+
       - restore_cache:
           keys: [backend-build]
 
@@ -290,14 +289,14 @@ jobs:
             npm run migrations > migrations_dump.txt
       - run:
           name: Send migration status to kvdb.io OR memstash.io
-          command: |   
-              if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
-              then
-                  # If you are using memstash.io, generate the token "7933fe63-4687-4fa1-8426-aa25aa1730ec" on the website
-                  curl -H "Content-Type: text/plain" -H "token: EUAJuVP5WS2Xs3i5N5Tsp4" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}
-                  # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
-                  curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
-              fi
+          command: |
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            then
+                # If you are using memstash.io, generate the token "7933fe63-4687-4fa1-8426-aa25aa1730ec" on the website
+                curl -H "Content-Type: text/plain" -H "token: EUAJuVP5WS2Xs3i5N5Tsp4" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}
+                # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
+                curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
+            fi
       - destroy-environment
 
   deploy_frontend:
@@ -307,7 +306,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/
-      
+
       - run:
           name: Install image dependencies
           command: |
@@ -347,7 +346,7 @@ jobs:
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
 
       - revert-migrations
-      - destroy-environment 
+      - destroy-environment
 
   deploy_backend:
     docker:
@@ -355,10 +354,10 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ['98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06']
+          fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
       - attach_workspace:
           at: ~/
-      
+
       - run:
           name: Install dependencies
           command: |
@@ -393,35 +392,35 @@ jobs:
       - destroy-environment
 
   smoke-test:
-    docker: 
+    docker:
       - image: python:alpine3.16
     steps:
       - checkout
       - attach_workspace:
           at: ~/
-      - run: 
+      - run:
           name: Install image dependencies
           command: |
             apk add --update curl nodejs npm
             pip install awscli
 
-      - run:
-          name: Backend smoke test 
-          command: |
-            export BACKEND_IP=$(aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}")
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-            if curl "${API_URL}/api/status" | grep "ok"
-            then
-                return 0
-            else
-                return 1
-            fi
+      # - run:
+      #     name: Backend smoke test
+      #     command: |
+      #       export BACKEND_IP=$(aws ec2 describe-instances \
+      #         --query 'Reservations[*].Instances[*].PublicIpAddress' \
+      #         --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}")
+      #       export API_URL="http://${BACKEND_IP}:3030"
+      #       echo "${API_URL}"
+      #       if curl "${API_URL}/api/status" | grep "ok"
+      #       then
+      #           return 0
+      #       else
+      #           return 1
+      #       fi
 
       - run:
-          name: Frontend smoke test 
+          name: Frontend smoke test
           command: |
             URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:5}.s3-website-us-east-1.amazonaws.com/#/employees"            
             echo ${URL} 
@@ -432,7 +431,9 @@ jobs:
             else
               return 1
             fi
-        
+
+      - revert-migrations
+      - destroy-environment
 
 workflows:
   default:
