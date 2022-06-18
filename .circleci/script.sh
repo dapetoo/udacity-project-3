@@ -1,5 +1,5 @@
 #!/bin/bash
-SUCCESS=$(curl --insecure  https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:5})
+SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5})
 # Logic for reverting the database state
 echo $SUCCESS
 if [[ $SUCCESS == 1 ]]
