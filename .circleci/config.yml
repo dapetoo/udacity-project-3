@@ -29,9 +29,7 @@ commands:
             name: Revert migrations
             when: on_fail
             command: |
-                # Your Memstash or kvdb.io GET URL code goes here
-                # Example: Memstash.io
-                # SUCCESS=$(curl -H "token: e52b52de-ee26-41a5-86e8-e8dcc3d995a5" --request GET https://api.memstash.io/values/migration_<< parameters.workflow_id >>)
+            
                 # Example: kvdb.io
                 SUCCESS=$(curl --insecure  https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:5}
                 # Logic for reverting the database state
@@ -41,50 +39,6 @@ commands:
                     npm install
                     npm run migration:revert
                 fi  
-  # revert-migrations2:
-  #   description: Revert the last migration if successfully run in the current workflow.
-  #   steps:
-  #     - restore_cache:
-  #         key: backend-build
-
-  #     - run:
-  #         name: Revert migrations
-  #         when: on_fail
-  #         command: |
-  #           # store result in SUCCESS if there was a successful migration associated with the workflow id
-  #           SUCCESS=`curl -H "token: e4b5e00a-f50e-4015-bea4-3150bfce14f7" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}`
-  #           echo $SUCCESS
-  #           if (( $SUCCESS == 1 ));
-  #           then
-  #             cd backend
-  #             npm install
-  #             npm run migrations:revert #revert the successful migration
-  #             echo "Migration reverted"
-  #           else
-  #             echo "Migration revert was unsuccessful" 
-  #           fi
-
-  # revert-migrations:
-  #   description: Revert the last migration
-  #   parameters:
-  #       id:
-  #           type: string      
-  #   steps:
-  #       - restore_cache: 
-  #           key: backend-build
-  #       - run:
-  #           name: Revert migrations
-  #           when: on_fail
-  #           command: |
-  #               # Your kvdb.io GET URL code goes here
-  #               SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_<< parameters.id >>)
-  #               # Logic for reverting the database state
-  #               if (( $SUCCESS == 1 ));
-  #               then
-  #                   cd ~/project/backend
-  #                   npm install
-  #                   npm run migration:revert
-  #               fi  
 
 jobs:
   build_frontend:
