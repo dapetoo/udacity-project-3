@@ -47,7 +47,7 @@ commands:
   revert-migrations:
     description: Revert the last migration
     parameters:
-        parameters.workflow_id:
+        id:
             type: string      
     steps:
         - restore_cache: 
@@ -57,7 +57,7 @@ commands:
             when: on_fail
             command: |
                 # Your kvdb.io GET URL code goes here
-                SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_<< parameters.workflow_id >>)
+                SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_<< parameters.id >>)
                 # Logic for reverting the database state
                 if (( $SUCCESS == 1 ));
                 then
