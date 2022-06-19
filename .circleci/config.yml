@@ -274,10 +274,10 @@ jobs:
 
       #Rollback on Failure
       - destroy-environment
+  
   run_migrations:
     docker:
       - image: cimg/node:13.8.0
-    resource_class: medium
     steps:
       - checkout
       - restore_cache:
@@ -510,7 +510,7 @@ workflows:
       #     requires: [build_backend]
       # - scan_frontend:
       #     requires: [build_frontend]
-      - deploy_infrastructure:
+      - deploy_infrastructure
           # requires: [test_frontend, test_backend, scan_frontend, scan_backend]
           # filters:
           #   branches:
