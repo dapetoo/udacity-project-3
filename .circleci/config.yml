@@ -276,7 +276,7 @@ jobs:
       - destroy-environment
   run_migrations:
     docker:
-      - image: cimg/node:16.13.1
+      - image: cimg/node:13.8.0
     resource_class: medium
     steps:
       - checkout
@@ -311,10 +311,10 @@ jobs:
           command: |
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-              echo "Migration succeeded for ${CIRCLE_WORKFLOW_ID:0:7}"
+              echo "Migration succeeded for ${CIRCLE_WORKFLOW_ID:0:5}"
               echo "1" >> ~/project/backend/migration-results.txt
             else
-              echo "Migration failed for ${CIRCLE_WORKFLOW_ID:0:7}:"
+              echo "Migration failed for ${CIRCLE_WORKFLOW_ID:0:5}:"
               cat ~/project/backend/migrations_dump.txt
               echo "fail" >> ~/project/backend/migration-results.txt
             fi
@@ -502,16 +502,16 @@ workflows:
     jobs:
       - build_frontend
       - build_backend
-      - test_frontend:
-          requires: [build_frontend]
-      - test_backend:
-          requires: [build_backend]
-      - scan_backend:
-          requires: [build_backend]
-      - scan_frontend:
-          requires: [build_frontend]
+      # - test_frontend:
+      #     requires: [build_frontend]
+      # - test_backend:
+      #     requires: [build_backend]
+      # - scan_backend:
+      #     requires: [build_backend]
+      # - scan_frontend:
+      #     requires: [build_frontend]
       - deploy_infrastructure:
-          requires: [test_frontend, test_backend, scan_frontend, scan_backend]
+          # requires: [test_frontend, test_backend, scan_frontend, scan_backend]
           # filters:
           #   branches:
           #     only: [test-feature-branch]
