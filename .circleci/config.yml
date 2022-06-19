@@ -319,10 +319,23 @@ jobs:
           at: ~/
 
       - run:
-          name: Install image dependencies
+          name: Install dependencies
           command: |
-            apk add --update tar gzip ansible node:16.9.1 npm curl
-            pip install awscli
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository --yes --update ppa:ansible/ansible
+            sudo apt install ansible -y
+
+            curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
+            sudo apt install -y nodejs
+      # - run:
+      #     name: Install image dependencies
+      #     command: |
+      #       apk add --update tar gzip ansible node:16.9.1 npm curl
+      #       pip install awscli
 
       - run:
           name: Install frontend dependencies
@@ -377,7 +390,7 @@ jobs:
 
             curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
             sudo apt install -y nodejs
-            
+
       - run:
           name: Install backend dependencies
           command: |
@@ -537,32 +550,32 @@ jobs:
 workflows:
   default:
     jobs:
-      # - build_frontend
-      # - build_backend
-      # - test_frontend:
-      #     requires: [build_frontend]
-      # - test_backend:
-      #     requires: [build_backend]
-      # - scan_backend:
-      #     requires: [build_backend]
-      # - scan_frontend:
-      #     requires: [build_frontend]
-      # - deploy_infrastructure:
-      #     requires: [test_frontend, test_backend, scan_frontend, scan_backend]
-      #     filters:
-      #       branches:
-      #         only: [main]
-      # - configure_infrastructure:
-      #     requires: [deploy_infrastructure]
-      # - run_migrations:
-      #     requires: [configure_infrastructure]
-      - deploy_frontend
-          # requires: [run_migrations]
-      - deploy_backend
-      #     requires: [run_migrations]
-      # - smoke-test:
-      #     requires: [deploy_backend, deploy_frontend]
-      # - cloudfront_update:
-      #     requires: [smoke-test]
-      # - cleanup:
-      #     requires: [cloudfront_update] 
+      - build_frontend
+      - build_backend
+      - test_frontend:
+          requires: [build_frontend]
+      - test_backend:
+          requires: [build_backend]
+      - scan_backend:
+          requires: [build_backend]
+      - scan_frontend:
+          requires: [build_frontend]
+      - deploy_infrastructure:
+          requires: [test_frontend, test_backend, scan_frontend, scan_backend]
+          filters:
+            branches:
+              only: [main]
+      - configure_infrastructure:
+          requires: [deploy_infrastructure]
+      - run_migrations:
+          requires: [configure_infrastructure]
+      - deploy_frontend:
+          requires: [run_migrations]
+      - deploy_backend:
+          requires: [run_migrations]
+      - smoke-test:
+          requires: [deploy_backend, deploy_frontend]
+      - cloudfront_update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront_update] 
