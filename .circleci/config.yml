@@ -22,8 +22,7 @@ commands:
             exit 0
 
   revert-migrations:
-    description: Revert the last migration
-    
+    description: Revert the last migration if successfully run in the current workflow.
     steps:
         - run:
             name: Revert migrations
@@ -115,6 +114,9 @@ jobs:
           event: pass
           channel: notification_channel
           template: basic_success_1
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: backend-test
 
   test_backend:
     docker:
@@ -137,6 +139,9 @@ jobs:
           event: pass
           channel: notification_channel
           template: basic_success_1
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-test
 
   scan_frontend:
     docker:
@@ -389,7 +394,8 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update ansible openssh-client tar gzip curl nodejs npm
-            # pip install awscli
+            npm install
+            npm run build
       - run:
           name: Deploy backend
           no_output_timeout: 30m
@@ -465,39 +471,47 @@ jobs:
       - destroy-environment
       - revert-migrations
 
+  # cloudfront-update:
+  #   docker:
+  #     - image: amazon/aws-cli
+  #   resource_class: medium
+  #   steps:
+  #     - checkout  
+  #     - run:
+  #         name: Install tar, gzip, git
+  #         command: yum -y install tar gzip git  
+
+  #     - run:
+  #         name: Update cloudfront distribution
+  #         command: |
+  #           aws cloudformation deploy \
+  #             --template-file .circleci/files/cloudfront.yml \
+  #             --stack-name InitialStack \
+  #             --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:5}" \
+  #             --tags project=udapeople
+
+  #     - destroy-environment
+  #     - revert-migrations
+
   cloudfront-update:
     docker:
       - image: amazon/aws-cli
-    resource_class: medium
     steps:
-      - checkout  
+      - checkout
       - run:
-          name: Install tar, gzip, git
-          command: yum -y install tar gzip git  
-      - run:
-          name: Save old workflow ID for cleanup
+          name: Install dependencies
           command: |
-            export OldWorkflowIDFull=$(aws cloudformation \
-              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-              --no-paginate --output text)
-            export OldWorkflowID=${OldWorkflowIDFull: -5}
-            echo "OldWorkflowID: ${OldWorkflowID}"
-            echo $OldWorkflowID >> ~/project/old-workflow-id.txt
+            yum -y install tar gzip
       - run:
           name: Update cloudfront distribution
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/cloudfront.yml \
-              --stack-name InitialStack \
-              --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:5}" \
-              --tags project=udapeople
-      - destroy-environment
+            --template-file .circleci/files/cloudfront.yml \
+            --stack-name cloudfront-stack-${CIRCLE_WORKFLOW_ID:0:5} \
+            --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:5}" \
+            --tags project=udapeople
       - revert-migrations
-
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/old-workflow-id.txt
+      - destroy-environment
 
 workflows:
   default:
