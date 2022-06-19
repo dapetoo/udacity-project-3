@@ -274,54 +274,178 @@ jobs:
 
       #Rollback on Failure
       - destroy-environment
-  
-  run_migrations:
+    run-migrations:
     docker:
-      - image: cimg/node:13.8.0
+      - image: circleci/node:13.8.0
     steps:
+      # Checkout code from git
       - checkout
       - restore_cache:
-          keys:
-            - backend-build
-      - run: 
-          name: Install nvm
+          keys: [backend-build]
+      - run:
+          name: prepare environment for backend build
           command: |
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+            echo "Preparing environment for backend build"
+            echo ENVIRONMENT=$ENVIRONMENT >> backend/.env
+            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> backend/.env
+            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
+            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> backend/.env
+            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> backend/.env
+            echo TYPEORM_HOST=$TYPEORM_HOST >> backend/.env
+            echo TYPEORM_PORT=$TYPEORM_PORT >> backend/.env
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> backend/.env
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo apt install -y awscli
       - run:
           name: Run migrations
           command: |
-            #echo NODE_ENV=production >> ~/project/backend/.env
-            echo "TYPEORM_CONNECTION = ${TYPEORM_CONNECTION}" >> ~/project/backend/.env
-            echo "TYPEORM_ENTITIES = ${TYPEORM_ENTITIES}" >> ~/project/backend/.env
-            echo "TYPEORM_HOST = ${TYPEORM_HOST}" >> ~/project/backend/.env
-            echo "TYPEORM_PORT = ${TYPEORM_PORT}" >> ~/project/backend/.env
-            echo "TYPEORM_USERNAME = ${TYPEORM_USERNAME}" >> ~/project/backend/.env
-            echo "TYPEORM_PASSWORD = ${TYPEORM_PASSWORD}" >> ~/project/backend/.env
-            echo "TYPEORM_DATABASE = ${TYPEORM_DATABASE}" >> ~/project/backend/.env
-            echo "TYPEORM_MIGRATIONS = ${TYPEORM_MIGRATIONS}" >> ~/project/backend/.env
-            echo "TYPEORM_MIGRATIONS_DIR = ${TYPEORM_MIGRATIONS_DIR}" >> ~/project/backend/.env
-            cd ~/project/backend
-            source ~/.profile 
-            nvm install v13.8.0 
-            npm install 
-            npm run migrations > migrations_dump.txt 
+            # Your code here
+            cd backend
+            npm install
+            npm install typescript
+            npm --update install python3 npm
+            npm run build
+            npm run migrations:revert
+            # Run and sve the migration output
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
       - run:
-          # It seems like memstash.io is no longer available/accessible (?)
-          name: Report migration results
+          name: Send migration results to memstash
+          working_directory: ./backend
           command: |
+            # Your code here
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-              echo "Migration succeeded for ${CIRCLE_WORKFLOW_ID:0:5}"
-              echo "1" >> ~/project/backend/migration-results.txt
-            else
-              echo "Migration failed for ${CIRCLE_WORKFLOW_ID:0:5}:"
-              cat ~/project/backend/migrations_dump.txt
-              echo "fail" >> ~/project/backend/migration-results.txt
+              echo "DB migration was successful, will update memstash..."
+              curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
+                --request PUT --data "1" \
+                https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
             fi
       - persist_to_workspace:
-          root: ~/
-          paths: 
-            - project/backend/migration-results.txt
+          root: ~/project
+          paths:
+            - backend
+    #  Here's where you will add some code to rollback on failure      
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  run_migrations:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      # Checkout code from git
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: prepare environment for backend build
+          command: |
+            echo "Preparing environment for backend build"
+            echo ENVIRONMENT=$ENVIRONMENT >> backend/.env
+            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> backend/.env
+            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
+            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> backend/.env
+            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> backend/.env
+            echo TYPEORM_HOST=$TYPEORM_HOST >> backend/.env
+            echo TYPEORM_PORT=$TYPEORM_PORT >> backend/.env
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> backend/.env
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo apt install -y awscli
+      - run:
+          name: Run migrations
+          command: |
+            # Your code here
+            cd backend
+            npm install
+            npm install typescript
+            npm --update install python3 npm
+            npm run build
+            npm run migrations:revert
+            # Run and sve the migration output
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
+      - run:
+          name: Send migration results to memstash
+          working_directory: ./backend
+          command: |
+            # Your code here
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            then
+              echo "DB migration was successful, will update memstash..."
+              curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
+                --request PUT --data "1" \
+                https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
+            fi
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - backend
+    #  Here's where you will add some code to rollback on failure      
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+
+  # run_migrations:
+  #   docker:
+  #     - image: cimg/node:13.8.0
+  #   steps:
+  #     - checkout
+  #     - restore_cache:
+  #         keys:
+  #           - backend-build
+  #     - run: 
+  #         name: Install nvm
+  #         command: |
+  #           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+  #     - run:
+  #         name: Run migrations
+  #         command: |
+  #           #echo NODE_ENV=production >> ~/project/backend/.env
+  #           echo "TYPEORM_CONNECTION = ${TYPEORM_CONNECTION}" >> ~/project/backend/.env
+  #           echo "TYPEORM_ENTITIES = ${TYPEORM_ENTITIES}" >> ~/project/backend/.env
+  #           echo "TYPEORM_HOST = ${TYPEORM_HOST}" >> ~/project/backend/.env
+  #           echo "TYPEORM_PORT = ${TYPEORM_PORT}" >> ~/project/backend/.env
+  #           echo "TYPEORM_USERNAME = ${TYPEORM_USERNAME}" >> ~/project/backend/.env
+  #           echo "TYPEORM_PASSWORD = ${TYPEORM_PASSWORD}" >> ~/project/backend/.env
+  #           echo "TYPEORM_DATABASE = ${TYPEORM_DATABASE}" >> ~/project/backend/.env
+  #           echo "TYPEORM_MIGRATIONS = ${TYPEORM_MIGRATIONS}" >> ~/project/backend/.env
+  #           echo "TYPEORM_MIGRATIONS_DIR = ${TYPEORM_MIGRATIONS_DIR}" >> ~/project/backend/.env
+  #           cd ~/project/backend
+  #           source ~/.profile 
+  #           nvm install v13.8.0 
+  #           npm install 
+  #           npm run migrations > migrations_dump.txt 
+  #     - run:
+  #         # It seems like memstash.io is no longer available/accessible (?)
+  #         name: Report migration results
+  #         command: |
+  #           if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+  #           then
+  #             echo "Migration succeeded for ${CIRCLE_WORKFLOW_ID:0:5}"
+  #             echo "1" >> ~/project/backend/migration-results.txt
+  #           else
+  #             echo "Migration failed for ${CIRCLE_WORKFLOW_ID:0:5}:"
+  #             cat ~/project/backend/migrations_dump.txt
+  #             echo "fail" >> ~/project/backend/migration-results.txt
+  #           fi
+  #     - persist_to_workspace:
+  #         root: ~/
+  #         paths: 
+  #           - project/backend/migration-results.txt
 
   # run_migrations:
   #   #docker:
