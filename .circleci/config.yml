@@ -470,7 +470,10 @@ jobs:
       - image: amazon/aws-cli
     resource_class: medium
     steps:
-      - checkout    
+      - checkout  
+      - run:
+          name: Install tar, gzip, git
+          command: yum -y install tar gzip git  
       - run:
           name: Save old workflow ID for cleanup
           command: |
