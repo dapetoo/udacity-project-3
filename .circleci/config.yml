@@ -467,17 +467,10 @@ jobs:
 
   cloudfront-update:
     docker:
-      - image: cimg/node:16.13.1
+      - image: amazon/aws-cli
     resource_class: medium
     steps:
-      - checkout
-
-      - run:
-          name: Install image dependencies
-          command: |
-            apk add --update curl nodejs npm
-            pip install awscli
-    
+      - checkout    
       - run:
           name: Save old workflow ID for cleanup
           command: |
