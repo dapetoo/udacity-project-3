@@ -1,49 +1,36 @@
 ---
-- name: "Move backend files to server."
+- name: "upgrade packages."
+  become: true
+  apt:
+    upgrade: "yes"
+- name: "install dependencies."
+  become: true
+  apt:
+    name: ["nodejs", "npm"]
+    update_cache: yes
+
+- name: "copy backend file"
+  become: true
   copy:
-    src: /root/project/backend_artifact.tar.gz
-    dest: ~/home/ubuntu
-- name: "Install package dependencies"
-  shell: |
-    cd ~/home/ubuntu
-    tar -xzvf backend_artifact.tar.gz -C backend
-    rm backend_artifact.tar.gz
-    cd backend/
-    npm run build
-    cd dist
-    pm2 start npm --name backend -- start
-# - name: "upgrade packages."
-#   become: true
-#   apt:
-#     upgrade: "yes"
-# - name: "install dependencies."
-#   become: true
-#   apt:
-#     name: ["nodejs", "npm"]
-#     update_cache: yes
+    src: /root/project/backend
+    dest: /root
+    force: no
 
-# - name: "copy backend file"
-#   become: true
-#   copy:
-#     src: /root/project/backend
-#     dest: /root
-#     force: no
+- name: "install npm packages"
+  become: true
+  command: npm install --force
+  args:
+    chdir: /root/backend
 
-# - name: "install npm packages"
-#   become: true
-#   command: npm install --force
-#   args:
-#     chdir: /root/backend
+- name: "compile npm packages"
+  become: true
+  command: npm run build
+  args:
+    chdir: /root/backend
 
-# - name: "compile npm packages"
-#   become: true
-#   command: npm run build
-#   args:
-#     chdir: /root/backend
-
-# - name: "start server"
-#   become: true
-#   command: pm2 start npm -- run start
-#   args:
-#     chdir: /root/backend/dist
+- name: "start server"
+  become: true
+  command: pm2 start npm -- run start
+  args:
+    chdir: /root/backend/dist
 
