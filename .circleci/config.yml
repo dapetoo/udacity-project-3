@@ -394,8 +394,8 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update ansible openssh-client tar gzip curl nodejs npm
-            npm install
-            npm run build
+            pip install awscli
+
       - run:
           name: Deploy backend
           no_output_timeout: 30m
@@ -411,6 +411,10 @@ jobs:
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
             cat backend/.env
+
+            cd backend
+            npm install 
+            npm run build
 
             tar -C backend -czvf artifact.tar.gz .
             ls -la
