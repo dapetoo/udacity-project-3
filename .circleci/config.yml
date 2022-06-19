@@ -313,8 +313,8 @@ jobs:
       - image: python:alpine3.16
     steps:
       - checkout
-      - restore_cache:
-          keys: [frontend-build]
+      # - restore_cache:
+      #     keys: [frontend-build]
       - attach_workspace:
           at: ~/
 
@@ -362,8 +362,8 @@ jobs:
           fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
       - attach_workspace:
           at: ~/
-      - restore_cache:
-          keys: [backend-build]
+      # - restore_cache:
+      #     keys: [backend-build]
       - run:
           name: Install dependencies
           command: |
