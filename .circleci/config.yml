@@ -480,7 +480,7 @@ jobs:
             export OldWorkflowIDFull=$(aws cloudformation \
               list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
               --no-paginate --output text)
-            export OldWorkflowID=${OldWorkflowIDFull: -7}
+            export OldWorkflowID=${OldWorkflowIDFull: -5}
             echo "OldWorkflowID: ${OldWorkflowID}"
             echo $OldWorkflowID >> ~/project/old-workflow-id.txt
       - run:
