@@ -370,7 +370,7 @@ jobs:
             apk add --update ansible openssh-client tar gzip curl nodejs npm
             pip install awscli
       - run:
-          name: Install dependencies
+          name: Install backend dependencies
           command: |
             cd backend
             npm install
