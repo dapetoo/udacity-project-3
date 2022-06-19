@@ -471,7 +471,13 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - aws-cli/setup
+
+      - run:
+          name: Install image dependencies
+          command: |
+            apk add --update curl nodejs npm
+            pip install awscli
+    
       - run:
           name: Save old workflow ID for cleanup
           command: |
