@@ -242,34 +242,6 @@ jobs:
           command: |
             # your code here
       # Here's where you will add some code to rollback on failure  
-
-cleanup:
-    docker:
-      # Docker image here
-    steps:
-      # Checkout code from git
-      - run:
-          name: Get old stack workflow id
-          command: |
-            # your code here
-            export OldWorkflowID="the id here"
-            export STACKS=[] #put the list of stacks here
-      - run:
-          name: Save old workflow ID for cleanup
-          command: |
-            export OldWorkflowIDFull=$(aws cloudformation \
-              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-              --no-paginate --output text)
-            export OldWorkflowID=${OldWorkflowIDFull: -5}
-            echo "OldWorkflowID: ${OldWorkflowID}"
-            echo $OldWorkflowID >> ~/project/old-workflow-id.txt
-      - run:
-          name: Remove old stacks and files
-          command: |
-            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-            then
-              # your code here
-            fi
             
 
 workflows:
