@@ -33,9 +33,15 @@ commands:
                 SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5})
                 # Logic for reverting the database state
                 echo $SUCCESS
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+                source ~/.profile 
+                nvm install v13.8.0
+                SUCCESS2=$(tail ~/project/backend/migration-results.txt)
+                echo $SUCCESS2
                 if (( $SUCCESS == 1 ));
                 then
-                  cd backend
+                  echo "Reverting migration..."
+                  cd ~/project/backend
                   npm install
                   npm run migrations:revert #revert the successful migration
                   echo "Migration reverted"
