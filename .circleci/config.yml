@@ -274,35 +274,84 @@ jobs:
 
       #Rollback on Failure
       - destroy-environment
-
   run_migrations:
     docker:
-      - image: cimg/node:16.9.1
+      - image: cimg/node:16.13.1
+    resource_class: medium
     steps:
       - checkout
-      - attach_workspace:
-          at: ~/
-
       - restore_cache:
-          keys: [backend-build]
-
-      - run:
-          name: Run Database Migrations
+          keys:
+            - backend-build
+      - run: 
+          name: Install nvm
           command: |
-            cd backend
-            npm install
-            npm run migrations > migrations_dump.txt
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
       - run:
-          name: Send migration status to kvdb.io OR memstash.io
+          name: Run migrations
+          command: |
+            #echo NODE_ENV=production >> ~/project/backend/.env
+            echo "TYPEORM_CONNECTION = ${TYPEORM_CONNECTION}" >> ~/project/backend/.env
+            echo "TYPEORM_ENTITIES = ${TYPEORM_ENTITIES}" >> ~/project/backend/.env
+            echo "TYPEORM_HOST = ${TYPEORM_HOST}" >> ~/project/backend/.env
+            echo "TYPEORM_PORT = ${TYPEORM_PORT}" >> ~/project/backend/.env
+            echo "TYPEORM_USERNAME = ${TYPEORM_USERNAME}" >> ~/project/backend/.env
+            echo "TYPEORM_PASSWORD = ${TYPEORM_PASSWORD}" >> ~/project/backend/.env
+            echo "TYPEORM_DATABASE = ${TYPEORM_DATABASE}" >> ~/project/backend/.env
+            echo "TYPEORM_MIGRATIONS = ${TYPEORM_MIGRATIONS}" >> ~/project/backend/.env
+            echo "TYPEORM_MIGRATIONS_DIR = ${TYPEORM_MIGRATIONS_DIR}" >> ~/project/backend/.env
+            cd ~/project/backend
+            source ~/.profile 
+            nvm install v13.8.0 
+            npm install 
+            npm run migrations > migrations_dump.txt 
+      - run:
+          # It seems like memstash.io is no longer available/accessible (?)
+          name: Report migration results
           command: |
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-                # If you are using memstash.io, generate the token "7933fe63-4687-4fa1-8426-aa25aa1730ec" on the website
-                curl -H "Content-Type: text/plain" -H "token: EUAJuVP5WS2Xs3i5N5Tsp4" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}
-                # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
-                curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
+              echo "Migration succeeded for ${CIRCLE_WORKFLOW_ID:0:7}"
+              echo "1" >> ~/project/backend/migration-results.txt
+            else
+              echo "Migration failed for ${CIRCLE_WORKFLOW_ID:0:7}:"
+              cat ~/project/backend/migrations_dump.txt
+              echo "fail" >> ~/project/backend/migration-results.txt
             fi
-      - destroy-environment
+      - persist_to_workspace:
+          root: ~/
+          paths: 
+            - project/backend/migration-results.txt
+
+  # run_migrations:
+  #   #docker:
+  #   executor: node
+  #     #- image: cimg/node:16.9.1
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: ~/
+
+  #     - restore_cache:
+  #         keys: [backend-build]
+
+  #     - run:
+  #         name: Run Database Migrations
+  #         command: |
+  #           cd backend
+  #           npm install
+  #           npm run migrations > migrations_dump.txt
+  #     - run:
+  #         name: Send migration status to kvdb.io OR memstash.io
+  #         command: |
+  #           if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+  #           then
+  #               # If you are using memstash.io, generate the token "7933fe63-4687-4fa1-8426-aa25aa1730ec" on the website
+  #               curl -H "Content-Type: text/plain" -H "token: EUAJuVP5WS2Xs3i5N5Tsp4" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:5}
+  #               # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
+  #               curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
+  #           fi
+  #     - destroy-environment
 
   deploy_frontend:
     docker:
@@ -409,20 +458,28 @@ jobs:
             apk add --update curl nodejs npm
             pip install awscli
 
-      # - run:
-      #     name: Backend smoke test
-      #     command: |
-      #       export BACKEND_IP=$(aws ec2 describe-instances \
-      #         --query 'Reservations[*].Instances[*].PublicIpAddress' \
-      #         --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}")
-      #       export API_URL="http://${BACKEND_IP}:3030"
-      #       echo "${API_URL}"
-      #       if curl "${API_URL}/api/status" | grep "ok"
-      #       then
-      #           return 0
-      #       else
-      #           return 1
-      #       fi
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "export API_URL=${API_URL}" >> $BASH_ENV
+            echo "API URL: ${API_URL}"
+
+      - run:
+          name: Backend smoke test
+          command: |
+            echo "Wait for backend to become available..."
+            sleep 30s
+            echo "Attempting to reach backend..."
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+              echo "Backend status OK"
+              exit 0
+            else
+              echo "Backend status NOT OK"
+              exit 1
+            fi
 
       - run:
           name: Frontend smoke test
@@ -437,8 +494,8 @@ jobs:
               return 1
             fi
 
-      - revert-migrations
       - destroy-environment
+      - revert-migrations
 
 workflows:
   default:
