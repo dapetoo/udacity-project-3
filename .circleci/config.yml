@@ -23,23 +23,22 @@ commands:
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      Workflow_ID:
+        type: string
+        default: ${CIRCLE_WORKFLOW_ID:0:5}
     steps:
         - run:
             name: Revert migrations
             when: on_fail
             command: |
-                # Example: kvdb.io
-                SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5})
+                SUCCESS=$(curl --insecure  https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_<< parameters.Workflow_ID >>)
                 # Logic for reverting the database state
                 if (( $SUCCESS == 1 ));
                 then
-                  echo "Reverting migration..."
-                  cd backend
+                  cd ~/project/backend
                   npm install
-                  npm run migrations:revert #revert the successful migration
-                  echo "Migration reverted"
-                else
-                  echo "Migration revert was unsuccessful" 
+                  npm run migration:revert
                 fi
 
 jobs:
@@ -105,7 +104,7 @@ jobs:
           command: |
             cd frontend
             npm install
-            npm run test
+            npm test
       - slack/notify:
           event: fail
           channel: notification_channel
@@ -114,9 +113,6 @@ jobs:
           event: pass
           channel: notification_channel
           template: basic_success_1
-      - save_cache:
-          paths: [frontend/node_modules]
-          key: backend-test
 
   test_backend:
     docker:
@@ -130,7 +126,7 @@ jobs:
           command: |
             cd backend
             npm install
-            npm run test
+            npm test
       - slack/notify:
           event: fail
           channel: notification_channel
@@ -139,9 +135,6 @@ jobs:
           event: pass
           channel: notification_channel
           template: basic_success_1
-      - save_cache:
-          paths: [backend/node_modules]
-          key: backend-test
 
   scan_frontend:
     docker:
@@ -219,13 +212,10 @@ jobs:
           name: Add the EC2 instance IP to the Ansible inventory
           command: |
             aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" \
-            --output text >> ~/project/.circleci/ansible/inventory.txt
-
-      - run:
-          name: View the content of the inventory file
-          command: cat .circleci/ansible/inventory.txt
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" \
+                --output text >> ~/project/.circleci/ansible/inventory.txt
+            cat .circleci/ansible/inventory.txt
 
       - persist_to_workspace:
           root: ~/
@@ -254,23 +244,22 @@ jobs:
       - run:
           name: Configure server using Ansible
           command: |
-            echo ENVIRONMENT=production > "backend/.env"
-            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-            echo NODE_ENV=production >> "backend/.env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-            cat backend/.env
+              # echo ENVIRONMENT=production > "backend/.env"
+              # echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+              # echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+              # echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+              # echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+              # echo NODE_ENV=production >> "backend/.env"
+              # echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+              # echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+              # echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+              # echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+              # echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+              # cat backend/.env
 
             cd .circleci/ansible
             cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
-
       #Rollback on Failure
       - destroy-environment
   
@@ -304,13 +293,8 @@ jobs:
       - run:
           name: Run migrations
           command: |
-            # Your code here
             cd backend
             npm install
-            npm install typescript
-            npm run build
-            npm run migrations:revert
-            # Run and save the migration output
             npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
       
@@ -320,13 +304,8 @@ jobs:
           command: |
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-                # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
-                curl -k https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
+                curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/migration_${CIRCLE_WORKFLOW_ID:0:5}  -d '1'
             fi
-      - persist_to_workspace:
-          root: ~/project
-          paths:
-            - backend
     #Rollback on failure      
       - destroy-environment
       - revert-migrations
@@ -336,6 +315,8 @@ jobs:
       - image: python:alpine3.16
     steps:
       - checkout
+      - restore_cache:
+          keys: [frontend-build]
       - attach_workspace:
           at: ~/
 
@@ -343,10 +324,6 @@ jobs:
           name: Install image dependencies
           command: |
             apk add --update tar gzip ansible nodejs npm curl
-
-      - run:
-          name: Install AWS CLI
-          command: |
             pip install awscli
 
       - run:
@@ -372,11 +349,9 @@ jobs:
           name: Deploy frontend objects to s3
           command: |
             cd frontend
-            npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
-
       - revert-migrations
       - destroy-environment
 
@@ -389,36 +364,59 @@ jobs:
           fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
       - attach_workspace:
           at: ~/
-
+      - restore_cache:
+          keys: [backend-build]
       - run:
           name: Install dependencies
           command: |
             apk add --update ansible openssh-client tar gzip curl nodejs npm
             pip install awscli
-
+      - run:
+          name: Install dependencies
+          command: |
+            cd backend
+            npm install
+      - run:
+          name: Package Backend
+          command: |
+            cd backend
+            npm run build
+            tar -czf artifact.tar.gz dist/* package*
+            cd ..
+            cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
       - run:
           name: Deploy backend
-          no_output_timeout: 30m
           command: |
-            echo ENVIRONMENT=production >> "backend/.env"
-            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-            cat backend/.env
-
-            tar -C backend -czvf artifact.tar.gz .
-            ls -la
-
+            export TYPEORM_MIGRATIONS_DIR=./migrations
+            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+            export TYPEORM_MIGRATIONS=./migrations/*.ts
             cd .circleci/ansible
             cat inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
+      # - run:
+      #     name: Deploy backend
+      #     no_output_timeout: 30m
+      #     command: |
+      #       echo ENVIRONMENT=production >> "backend/.env"
+      #       echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+      #       echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+      #       echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+      #       echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+      #       echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+      #       echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+      #       echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+      #       echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+      #       echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+      #       cat backend/.env
+
+      #       tar -C backend -czvf artifact.tar.gz .
+      #       ls -la
+
+      #       cd .circleci/ansible
+      #       cat inventory.txt
+      #       export ANSIBLE_HOST_KEY_CHECKING=False
+      #       ansible-playbook -i inventory.txt deploy-backend.yml
 
       # Here's where you will add some code to rollback on failure
       - revert-migrations
@@ -463,7 +461,7 @@ jobs:
             if curl -s ${URL} | grep "Welcome"
             then
                 # Change this to 0 after the job fails
-              return 0
+              return 1
             else
               return 1
             fi
@@ -471,7 +469,7 @@ jobs:
       - destroy-environment
       - revert-migrations
 
-  cloudfront-update:
+  cloudfront_update:
     docker:
       - image: amazon/aws-cli
     steps:
@@ -481,6 +479,15 @@ jobs:
           command: |
             yum -y install tar gzip
       - run:
+          name: Save Old Workflow ID to kvdb.io
+          command: |
+            export OLD_WORKFLOW_ID=$(aws cloudformation \
+                      list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+                      --no-paginate --output text)
+            echo "Old Wokflow ID: $OLD_WORKFLOW_ID"
+            curl https://kvdb.io/EUAJuVP5WS2Xs3i5N5Tsp4/old_workflow_id -d "${OLD_WORKFLOW_ID}"
+
+      - run:
           name: Update cloudfront distribution
           command: |
             aws cloudformation deploy \
@@ -488,8 +495,8 @@ jobs:
             --stack-name cloudfront-stack-${CIRCLE_WORKFLOW_ID:0:5} \
             --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:5}" \
             --tags project=udapeople
-      - revert-migrations
       - destroy-environment
+      - revert-migrations
   
   cleanup:
     docker:
@@ -525,20 +532,20 @@ workflows:
     jobs:
       - build_frontend
       - build_backend
-      # - test_frontend:
-      #     requires: [build_frontend]
-      # - test_backend:
-      #     requires: [build_backend]
-      # - scan_backend:
-      #     requires: [build_backend]
-      # - scan_frontend:
-      #     requires: [build_frontend]
+      - test_frontend:
+          requires: [build_frontend]
+      - test_backend:
+          requires: [build_backend]
+      - scan_backend:
+          requires: [build_backend]
+      - scan_frontend:
+          requires: [build_frontend]
       - deploy_infrastructure:
           requires: [build_frontend, build_backend]
-          # requires: [test_frontend, test_backend, scan_frontend, scan_backend]
-          # filters:
-          #   branches:
-          #     only: [test-feature-branch]
+          requires: [test_frontend, test_backend, scan_frontend, scan_backend]
+          filters:
+            branches:
+              only: [main]
       - configure_infrastructure:
           requires: [deploy_infrastructure]
       - run_migrations:
@@ -552,4 +559,4 @@ workflows:
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
-          requires: [cloudfront-update] 
+          requires: [cloudfront_update] 
