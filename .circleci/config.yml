@@ -553,7 +553,7 @@ workflows:
           requires: [run_migrations]
       - smoke-test:
           requires: [deploy_backend, deploy_frontend]
-      - cloudfront-update:
+      - cloudfront_update:
           requires: [smoke-test]
       - cleanup:
           requires: [cloudfront_update] 
