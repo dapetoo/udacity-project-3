@@ -367,8 +367,17 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo apt install -y python ansible curl tar gzip nodejs npm
-            pip install awscli
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository --yes --update ppa:ansible/ansible
+            sudo apt install ansible -y
+
+            curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
+            sudo apt install -y nodejs
+            
       - run:
           name: Install backend dependencies
           command: |
