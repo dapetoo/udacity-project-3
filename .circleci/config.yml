@@ -357,7 +357,7 @@ jobs:
       - revert-migrations
       - destroy-environment
 
-  deploy-backend:
+  deploy_backend:
     docker: 
       - image: python:3.11-rc-alpine
     steps:
