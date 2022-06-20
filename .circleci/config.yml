@@ -368,7 +368,7 @@ jobs:
           name: Install independencies
           command: |
             apk add --update ansible tar npm curl
-            pip install aws-cli
+            apk add --no-cache aws-cli
       - attach_workspace:
           at: .
       - run: 
