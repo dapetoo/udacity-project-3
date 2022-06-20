@@ -376,7 +376,7 @@ jobs:
           command: |
             cd backend
             echo "NODE_ENV=production" >> .env
-            npm i
+            npm install --legacy-peer-deps
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
