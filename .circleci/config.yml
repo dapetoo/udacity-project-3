@@ -358,21 +358,23 @@ jobs:
       - destroy-environment
 
   deploy_backend:
-    docker: 
-      - image: python:3.11-rc-alpine
+    docker:
+      - image: python:alpine3.16
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
-      - run: 
-          name: Install independencies
-          command: |
-            apk add --update ansible tar npm curl
-            apk add --no-cache aws-cli
       - attach_workspace:
-          at: .
-      - run: 
-          name: build and zip backend
+          at: ~/
+
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible openssh-client tar gzip curl nodejs npm
+            pip install awscli
+
+      - run:
+          name: Deploy backend
           no_output_timeout: 30m
           command: |
             echo ENVIRONMENT=production >> "backend/.env"
@@ -385,16 +387,16 @@ jobs:
             echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            echo "NODE_ENV=production" >> .env
             cat backend/.env
+
             cd backend
             npm install --legacy-peer-deps
             npm run build
-            cd ..
+            
             tar -C backend -czvf artifact.tar.gz .
             cd .circleci/ansible
             cat inventory.txt
+            export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
