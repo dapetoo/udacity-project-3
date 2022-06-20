@@ -373,19 +373,22 @@ jobs:
           at: .
       - run: 
           name: build and zip backend
+          no_output_timeout: 30m
           command: |
+            export TYPEORM_MIGRATIONS_DIR=./migrations
+            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+            export TYPEORM_MIGRATIONS=./migrations/*.ts
+            export ANSIBLE_HOST_KEY_CHECKING=False
             cd backend
             echo "NODE_ENV=production" >> .env
             npm install --legacy-peer-deps
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
-      - run: 
-          name: deploy backend with ansible
-          command: |
             cd .circleci/ansible
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
+      
       - destroy-environment
 
   # deploy_backend:
