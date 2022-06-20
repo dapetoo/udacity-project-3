@@ -357,76 +357,107 @@ jobs:
       - revert-migrations
       - destroy-environment
 
-  deploy_backend:
-    docker:
-      - image: python:alpine3.16
+  deploy-backend:
+    docker: 
+      - image: python:3.11-rc-alpine
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
-      - attach_workspace:
-          at: ~/
-
-      - run:
-          name: Install dependencies
+      - run: 
+          name: Install independencies
           command: |
-            apk add --update ansible openssh-client tar gzip curl nodejs npm
-            pip install awscli
-
-      - run:
-          name: Package and Deploy Backend
-          no_output_timeout: 30m
+            apk add --update ansible tar npm curl
+            apk add --no-cache aws-cli
+      - attach_workspace:
+          at: .
+      - run: 
+          name: build and zip backend
           command: |
             cd backend
-            npm install --legacy-peer-deps
+            echo "NODE_ENV=production" >> .env
+            npm i
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
+      - run: 
+          name: deploy backend with ansible
+          command: |
             cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
-      - revert-migrations
-      - destroy-environment
-            # tar -czf artifact.tar.gz dist/* package*
-            # cd ..
-            # cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
-      # - run:
-      #     name: Deploy backend
-      #     no_output_timeout: 30m
-      #     command: |
-      #       export TYPEORM_MIGRATIONS_DIR=./migrations
-      #       export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
-      #       export TYPEORM_MIGRATIONS=./migrations/*.ts
-      #       cd .circleci/ansible
-      #       cat inventory.txt
-      #       export ANSIBLE_HOST_KEY_CHECKING=False
-      #       # ansible-playbook -i inventory.txt deploy-backend.yml
-      # - run:
-      #     name: Deploy backend
-      #     no_output_timeout: 30m
-      #     command: |
-      #       echo ENVIRONMENT=production >> "backend/.env"
-      #       echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-      #       echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-      #       echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-      #       echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-      #       echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-      #       echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-      #       echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-      #       echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-      #       echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-      #       cat backend/.env
+      - destroy_environment
 
-      #       tar -C backend -czvf artifact.tar.gz .
-      #       ls -la
+  # deploy_backend:
+  #   docker:
+  #     - image: python:alpine3.16
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints: ["98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"]
+  #     - attach_workspace:
+  #         at: ~/
 
-      #       cd .circleci/ansible
-      #       cat inventory.txt
-      #       export ANSIBLE_HOST_KEY_CHECKING=False
-      #       ansible-playbook -i inventory.txt deploy-backend.yml
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update ansible openssh-client tar gzip curl nodejs npm
+  #           pip install awscli
 
-      # Here's where you will add some code to rollback on failure
+  #     - run:
+  #         name: Package and Deploy Backend
+  #         no_output_timeout: 30m
+  #         command: |
+  #           cd backend
+  #           npm install --legacy-peer-deps
+  #           npm run build
+  #           cd ..
+  #           tar -C backend -czvf artifact.tar.gz .
+  #           cd .circleci/ansible
+  #           echo "Contents  of the inventory.txt file is -------"
+  #           cat inventory.txt
+  #           ansible-playbook -i inventory.txt deploy-backend.yml
+  #     - revert-migrations
+  #     - destroy-environment
+  #           # tar -czf artifact.tar.gz dist/* package*
+  #           # cd ..
+  #           # cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
+  #     # - run:
+  #     #     name: Deploy backend
+  #     #     no_output_timeout: 30m
+  #     #     command: |
+  #     #       export TYPEORM_MIGRATIONS_DIR=./migrations
+  #     #       export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+  #     #       export TYPEORM_MIGRATIONS=./migrations/*.ts
+  #     #       cd .circleci/ansible
+  #     #       cat inventory.txt
+  #     #       export ANSIBLE_HOST_KEY_CHECKING=False
+  #     #       # ansible-playbook -i inventory.txt deploy-backend.yml
+  #     # - run:
+  #     #     name: Deploy backend
+  #     #     no_output_timeout: 30m
+  #     #     command: |
+  #     #       echo ENVIRONMENT=production >> "backend/.env"
+  #     #       echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+  #     #       echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+  #     #       echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+  #     #       echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+  #     #       echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+  #     #       echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+  #     #       echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+  #     #       echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+  #     #       echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+  #     #       cat backend/.env
+
+  #     #       tar -C backend -czvf artifact.tar.gz .
+  #     #       ls -la
+
+  #     #       cd .circleci/ansible
+  #     #       cat inventory.txt
+  #     #       export ANSIBLE_HOST_KEY_CHECKING=False
+  #     #       ansible-playbook -i inventory.txt deploy-backend.yml
+
+  #     # Here's where you will add some code to rollback on failure
 
 
   smoke-test:
