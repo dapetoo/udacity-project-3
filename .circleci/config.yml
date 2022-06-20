@@ -388,16 +388,24 @@ jobs:
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
             cat backend/.env
-
-            cd backend
-            npm install --legacy-peer-deps
-            npm run build
             
             tar -C backend -czvf artifact.tar.gz .
+            ls -la
+
             cd .circleci/ansible
             cat inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
+            
+            # cd backend
+            # npm install --legacy-peer-deps
+            # npm run build
+            # cd ..
+            # tar -C backend -czvf artifact.tar.gz .
+            # cd .circleci/ansible
+            # cat inventory.txt
+            # export ANSIBLE_HOST_KEY_CHECKING=False
+            # ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
 
