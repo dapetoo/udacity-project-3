@@ -374,16 +374,11 @@ jobs:
             pip install awscli
 
       - run:
-          name: Install backend dependencies
-          command: |
-            cd backend
-            npm install --legacy-peer-deps
-      - run:
           name: Package and Deploy Backend
           no_output_timeout: 30m
           command: |
             cd backend
-            npm install 
+            npm install --legacy-peer-deps
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
