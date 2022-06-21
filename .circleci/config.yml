@@ -347,12 +347,12 @@ jobs:
             
             # echo "API_URL=${API_URL}" >> .env
             # echo "${API_URL}"
-            touch ".env"
             BACKENDDNS=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --output text)            
-            export API_URL="${BACKENDDNS}:3030"
-            
+            export API_URL="http://${BACKENDDNS}:3030"
+            # echo "API URL: ${API_URL}"
+            export API_URL="${BACKENDDNS}:3030"   
+            echo "API_URL=${API_URL}" >> .env        
             echo "API_URL=${API_URL}" >> frontend/.env
-            echo "${API_URL}"
 
 
             # export BACKEND_IP=$(aws ec2 describe-instances \
