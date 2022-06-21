@@ -347,7 +347,6 @@ jobs:
             
             # echo "API_URL=${API_URL}" >> .env
             # echo "${API_URL}"
-            sudo chmod -R 777 /usr/local/lib/node_modules
             touch ".env"
             BACKENDDNS=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --output text)            
             export API_URL="${BACKENDDNS}:3030"
