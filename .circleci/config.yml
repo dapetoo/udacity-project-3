@@ -231,7 +231,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: 
-            - "98:2d:44:fe:8d:09:89:8f:9d:3c:6a:30:c4:57:5f:06"
+            - "58:76:0a:50:56:65:3f:fa:90:8c:2d:de:bf:78:60:01"
             - "e1:7d:e0:29:ad:72:8d:1b:21:6f:f5:76:ed:19:d3:56"
       - attach_workspace:
           at: ~/
@@ -343,6 +343,11 @@ jobs:
             export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:5}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL=${API_URL}" >> frontend/.env
+            echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+
+            echo "API_URL=http://${BACKEND_PUBLIC_IP}:3030" >> .env
+            cat .env
 
 
             # BACKEND_PUBLIC_IP=$(aws ec2 describe-instances \
