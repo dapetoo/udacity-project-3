@@ -346,7 +346,7 @@ jobs:
             echo "API_URL=${API_URL}" >> frontend/.env
             echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
-            #cd frontend
+            cd frontend
             #npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
@@ -369,7 +369,7 @@ jobs:
       #       tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
       #       aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
       #       echo "s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5}"
-      # - revert-migrations
+      - revert-migrations
       - destroy-environment
 
   deploy_backend:
