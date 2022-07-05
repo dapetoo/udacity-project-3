@@ -347,28 +347,11 @@ jobs:
             echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
             cd frontend
-            #npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
             echo "s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5}"
-            
 
-            # echo "API_URL=http://${BACKEND_IP}:3030" >> .env
-            # cat .env
-
-
-      # - run:
-      #     name: Deploy frontend objects to s3
-      #     command: |
-      #       # echo ENVIRONMENT=production >> frontend/.env
-      #       # echo NODE_ENV=production >> frontend/.env
-      #       cd frontend
-      #       npm install
-      #       npm run build
-      #       tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:5}".tar.gz dist
-      #       aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5} --recursive
-      #       echo "s3://udapeople-${CIRCLE_WORKFLOW_ID:0:5}"
       - revert-migrations
       - destroy-environment
 
@@ -560,7 +543,7 @@ workflows:
           requires: [run_migrations]
       - smoke-test:
           requires: [deploy_backend, deploy_frontend]
-      # - cloudfront_update:
-      #     requires: [smoke-test]
-      # - cleanup:
-      #     requires: [cloudfront_update] 
+      - cloudfront_update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront_update] 
