@@ -2,10 +2,10 @@ URL01 (Git repository)
 https://github.com/dapetoo/udacity-project-3
 
 URL02 (S3 Bucket URL)
-http://udapeople-223ad.s3-website-us-east-1.amazonaws.com/
+http://udapeople-9e038.s3-website-us-east-1.amazonaws.com
 
 URL03 (production front-end)
-https://dtht7qfnv6ph3.cloudfront.net
+https://d3dgahnbmolmtv.cloudfront.net
 
 URL04 (production back-end)
-http://54.159.248.118:3030/
+http://3.82.192.135:3030/
